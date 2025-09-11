@@ -124,6 +124,7 @@
     <button class="event-btn" onclick="showForm('attack')">On Attack</button>
     <button class="event-btn" onclick="showForm('crit')">On Crit Attack</button>
     <button class="event-btn" onclick="showForm('defense')">On Being Attacked</button>
+    <button class="event-btn" onclick="showForm('climb')">Climb/Fall</button>
 
     <!-- State selection -->
     <div id="statePanel" style="margin-bottom: 20px;">
@@ -155,12 +156,18 @@
       <div class="result" id="critInfo"></div>
     </div>
 
+    <!-- Climb form -->
+    <div id="climb" class="form-section">
+      <h3>Climbing/Falling</h3>
+      <div class="result" id="climbInfo"></div>
+    </div>
+
   </div>
 
   <script>
 
     const CHARACTER = {
-        level: 4,
+        level: 5,
 
         strMod: 0,
         dexMod: 3,
@@ -169,10 +176,13 @@
         wisMod: 2,
         chaMod: 0, // raw: -1, with ring(+1): 0
 
-        profBonus: 2,
-        armorClass: 17,
+        speed: 40,
+        profBonus: 3,
+        armorClass: 18,
         dmgReduction: 5,
-        mad: "1d6🎲"
+        mad: "2d6🎲",
+
+        reachRange: 10,
     };
 
     let combatStance = "normal";
@@ -183,7 +193,7 @@
         mountain: {
             title: "⛰️ Mountain Stance",
             info: "",
-            reaction: `Reduce Melee attack within range (10👣)
+            reaction: `Reduce Melee attack within range (${CHARACTER.reachRange}👣) ,lvl5: TWICE
                 Reduced Damage: [MAD ${CHARACTER.mad}] + [Dex ${CHARACTER.dexMod}] + [Lvl ${CHARACTER.level}]
                 🪖Sentinel: if the attack is not on me, I can attack`,
             madPoint: `🔵 Unrelenting: Add [Lvl ${CHARACTER.level}] to glancing blow`,
@@ -192,7 +202,7 @@
             title: "🌊 Flow Of All Things",
             info: "",
             reaction: `(melee) reduce damage [MAD ${CHARACTER.mad}] + [DR ${CHARACTER.dmgReduction}]
-                Retaliate: Attack normally and add the reduced to the dmg`,
+                Retaliate: Attack normally and add the reduced to the dmg ,lvl5: TWICE`,
             madPoint: `🔵 Aggressive Flow: Retaliate Twice against the same attack`,
         },
         wind: {
@@ -216,7 +226,11 @@
         attackInfo = `Attack Roll: [d20🎲] + [Dex ${CHARACTER.dexMod}] + [Prof ${CHARACTER.profBonus}]
             Damage: [MAD ${CHARACTER.mad}] + [Dex ${CHARACTER.dexMod}]
         
-            🟣 Piercer: Once per turn, re-roll one damage die`;
+            🟣 Piercer: Once per turn, re-roll one damage die
+            
+            🟣 BDazzle(lvl5): Once per round, when you hit a creature with a Rope dart or an Unarmed Strike,
+             \tyou can spend 1 Martial Discipline Point to attempt to stun the enemy. The target must succeed on a
+             \tConstitution saving throw or have the Stunned condition until the start of your next turn`;
 
         // on being attacked info
         defenceInfo = `Over powered if above armor+10: [${CHARACTER.armorClass + 10}]
@@ -232,9 +246,14 @@
             
             🟣 Pendant: Add d6 Fire 🔥 Damage per dice`;
 
+        // on crit attack info
+        climbInfo = `lvl4: While wielding a Rope dart, you gain climbing speed equal to your normal movement speed [${CHARACTER.speed}].
+            In addition, you can use your Reaction when you fall to mitigate damage you take from the fall by 🎲 Dexterity ability check.`;
+
         document.getElementById("attackInfo").innerText = attackInfo;
         document.getElementById("defenceInfo").innerText = defenceInfo;
         document.getElementById("critInfo").innerText = critInfo;
+        document.getElementById("climbInfo").innerText = climbInfo;
     }
 
 
