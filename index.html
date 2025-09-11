@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edgar</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f0f0f0; }
+    .container { max-width: 700px; margin: auto; }
+    .event-btn {
+      display: inline-block;
+      margin: 5px;
+      padding: 10px 15px;
+      background: #007acc;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .event-btn:hover { background: #005f99; }
+    .form-section {
+      display: none;
+      background: white;
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    input {
+      width: 100%;
+      margin: 8px 0;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    button.submit {
+      background: green;
+      margin-top: 10px;
+    }
+    .result {
+      margin-top: 15px;
+      font-weight: bold;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Edgar Calculator</h2>
+    
+    <!-- Event buttons -->
+    <button class="event-btn" onclick="showForm('attack')">On Attack</button>
+    <button class="event-btn" onclick="showForm('defense')">On Being Attacked</button>
+
+    <!-- State selection -->
+    <div id="statePanel" style="margin-bottom: 20px;">
+        <label for="combatState"><strong>Combat State:</strong></label>
+        <select id="combatState" onchange="updateState()">
+            <option value="normal">Normal</option>
+            <option value="mountain">Mountain</option>
+            <option value="flow">Flow Of All Things</option>
+            <option value="wind">Wind</option>
+        </select>
+        <div class="result" id="combatStateDesc"></div>
+    </div>
+
+    <!-- Attack form -->
+    <div id="attack" class="form-section">
+      <h3>On Attack</h3>
+      <div class="result" id="attackInfo"></div>
+      <input id="attackRoll" type="number" placeholder="Attack Roll">
+      <button class="event-btn submit" onclick="calculateAttack()">Submit</button>
+
+      <input id="damageRoll" type="number" placeholder="Damage Roll">
+      <div class="result" id="attackResult"></div>
+    </div>
+
+    <!-- Defense form -->
+    <div id="defense" class="form-section">
+      <h3>On Being Attacked</h3>
+      <input id="enemyRoll" type="number" placeholder="Enemy Attack Roll">
+      <input id="damageTaken" type="number" placeholder="Raw Damage">
+      <button class="event-btn submit" onclick="calculateDefense()">Submit</button>
+      <div class="result" id="defenseResult"></div>
+    </div>
+  </div>
+
+  <script>
+
+    const CHARACTER = {
+        level: 4,
+
+        strMod: 0,
+        dexMod: 3,
+        conMod: 3,
+        intMod: 3,
+        wisMod: 2,
+        chaMod: 0, // raw: -1, with ring(+1): 0
+
+        profBonus: 2,
+        armorClass: 17,
+        dmgReduction: 5,
+        mad: "1d6🎲"
+    };
+
+    let combatStance = "normal";
+
+    const STANCE_INFO = {
+        normal: "",
+        mountain: `⛰️ Mountain Stance
+            Movement Blocked
+            Reaction: Reduce Melee attack within range (10👣)
+            Reduced Damage: [MAD(${CHARACTER.mad})] + [Dex(${CHARACTER.dexMod})] + [Lvl(${CHARACTER.level})]
+            🪖Sentinel: if the attack is not on me, I can attack
+            
+            🔵 Unrelenting: Add Lvl(${CHARACTER.level}) to glancing blow`,
+
+        flow: `🌊 Flow Of All Things
+            Reaction (melee attacked): reduce damage [MAD(${CHARACTER.mad})] + [DR(${CHARACTER.dmgReduction})]
+            Retaliate: Attack normally and add the reduced to the dmg
+            
+            🔵 Aggressive Flow: Retaliate Twice against the same attack`,
+        
+        wind: `💨 Like the Wind
+            Movement Doubled
+            Add Wisdom to any Dex saving throw
+            
+            🔵 Breeze: Disingage + Dash as bonus action, jump doubled`
+    };
+
+    function showForm(formId) {
+      // Hide all forms
+      document.querySelectorAll('.form-section').forEach(f => f.style.display = "none");
+      // Show selected
+      document.getElementById(formId).style.display = "block";
+
+      attackInfo = `Attack Roll: [d20🎲] + [Dex(${CHARACTER.dexMod})] + [Prof(${CHARACTER.profBonus})]\n`;
+      attackInfo += `Damage: [MAD(${CHARACTER.mad})] + Dex(${CHARACTER.dexMod})`
+
+      document.getElementById("attackInfo").innerText = attackInfo;
+    }
+
+    function calculateAttack() {
+      const atk = parseInt(document.getElementById("attackRoll").value);
+      const dmg = parseInt(document.getElementById("damageRoll").value);
+      if (isNaN(atk) || isNaN(dmg)) {
+        document.getElementById("attackResult").innerText = "Please fill both fields.";
+        return;
+      }
+      document.getElementById("attackResult").innerText =
+        `You rolled ${atk} to hit and dealt ${dmg} damage.`;
+    }
+
+    function calculateDefense() {
+      const enemyAtk = parseInt(document.getElementById("enemyRoll").value);
+      const dmg = parseInt(document.getElementById("damageTaken").value);
+      if (isNaN(enemyAtk) || isNaN(dmg)) {
+        document.getElementById("defenseResult").innerText = "Please fill both fields.";
+        return;
+      }
+      document.getElementById("defenseResult").innerText =
+        `Enemy rolled ${enemyAtk} to hit. You took ${dmg} damage.`;
+    }
+
+    function updateState() {
+        combatStance = document.getElementById("combatState").value;
+
+        document.getElementById("combatStateDesc").innerText = STANCE_INFO[combatStance]
+    }
+
+  </script>
+</body>
+</html>
