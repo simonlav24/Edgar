@@ -4,117 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Edgar</title>
-    <style>
-    body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      padding: 0;
-      margin: 0;
-      background: #f0f0f0;
-    }
-    .container {
-      max-width: 700px;
-      margin: 32px auto;
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-      padding: 24px 18px;
-    }
-    h2 {
-      text-align: center;
-      font-size: 2rem;
-      margin-bottom: 24px;
-    }
-    .event-btn {
-      display: inline-block;
-      margin: 6px 8px 6px 0;
-      padding: 12px 22px;
-      background: linear-gradient(90deg, #007acc 60%, #005f99 100%);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-      font-weight: 500;
-      transition: background 0.2s, transform 0.2s;
-    }
-    .event-btn:hover {
-      background: linear-gradient(90deg, #005f99 60%, #007acc 100%);
-      transform: translateY(-2px) scale(1.04);
-    }
-    .form-section {
-      display: none;
-      background: #fafcff;
-      margin-top: 20px;
-      padding: 18px 12px;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.10);
-    }
-    input, select {
-      width: 100%;
-      margin: 10px 0;
-      padding: 10px;
-      border-radius: 7px;
-      border: 1px solid #b0b0b0;
-      font-size: 1rem;
-      box-sizing: border-box;
-    }
-    button.submit {
-      background: #2ecc40;
-      color: white;
-      margin-top: 12px;
-      font-size: 1rem;
-      border-radius: 8px;
-      border: none;
-      padding: 10px 18px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    button.submit:hover {
-      background: #27ae36;
-    }
-    .result {
-      margin-top: 16px;
-      font-weight: 500;
-      font-size: 1.08rem;
-      color: #333;
-      white-space: pre-line;
-    }
-    label {
-      font-size: 1rem;
-      font-weight: 500;
-    }
-    @media (max-width: 600px) {
-      .container {
-        max-width: 98vw;
-        margin: 8px auto;
-        padding: 12px 4vw;
-        border-radius: 8px;
-      }
-      h2 {
-        font-size: 1.3rem;
-        margin-bottom: 16px;
-      }
-      .event-btn {
-        font-size: 0.95rem;
-        padding: 10px 12px;
-        border-radius: 7px;
-      }
-      .form-section {
-        padding: 12px 4px;
-        border-radius: 7px;
-      }
-      input, select {
-        font-size: 0.98rem;
-        padding: 8px;
-        border-radius: 6px;
-      }
-      button.submit {
-        font-size: 0.98rem;
-        padding: 8px 12px;
-        border-radius: 7px;
-      }
-    }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="container">
@@ -136,6 +26,55 @@
             <option value="wind">Wind</option>
         </select>
         <div class="result" id="combatStateDesc"></div>
+
+        <!-- Mountain-only inputs (hidden until 'mountain' selected) -->
+        <div id="mountainInputs" style="display: none;">
+          <div class="mountain-row">
+            <label>
+              Damage
+              <input type="number" id="mountainDamage" value="0" />
+            </label>
+            <label>
+              Elemental Damage
+              <input type="number" id="mountainElementalDamage" value="0" />
+            </label>
+          </div>
+          <div class="mountain-row">
+            <label>
+              Dice Result
+              <input type="number" id="mountainDiceResult" value="0" />
+            </label>
+          </div>
+          <div class="mountain-row mountain-actions">
+            <button id="mountainCalcBtn" onclick="calcMountain()">Calculate</button>
+            <div class="result" id="mountainResult"></div>
+          </div>
+        </div>
+
+        <!-- Flow-only inputs (hidden until 'flow' selected) -->
+        <div id="flowInputs" style="display: none;">
+          <div class="flow-row">
+            <label>
+              Damage
+              <input type="number" id="flowDamage" value="0" />
+            </label>
+            <label>
+              Elemental Damage
+              <input type="number" id="flowElementalDamage" value="0" />
+            </label>
+          </div>
+          <div class="flow-row">
+            <label>
+              Dice Result
+              <input type="number" id="flowDiceResult" value="0" />
+            </label>
+          </div>
+          <div class="flow-row flow-actions">
+            <button id="flowCalcBtn" onclick="calcFlow()">Calculate</button>
+            <div class="result" id="flowResult"></div>
+          </div>
+        </div>
+
     </div>
 
     <!-- Attack form -->
@@ -179,8 +118,9 @@
         speed: 40,
         profBonus: 3,
         armorClass: 18,
-        dmgReduction: 5,
-        mad: "2d6🎲",
+        dmgReduction: 6,
+        dmgReductionElemental: 4,
+        mad: "3d6",
 
         reachRange: 10,
     };
@@ -193,16 +133,14 @@
         mountain: {
             title: "⛰️ Mountain Stance",
             info: "",
-            reaction: `Reduce Melee attack within range (${CHARACTER.reachRange}👣) ,lvl5: TWICE
-                Reduced Damage: [MAD ${CHARACTER.mad}] + [Dex ${CHARACTER.dexMod}] + [Lvl ${CHARACTER.level}]
+            reaction: `Reduce Melee attack within range (${CHARACTER.reachRange}👣)
                 🪖Sentinel: if the attack is not on me, I can attack`,
             madPoint: `🔵 Unrelenting: Add [Lvl ${CHARACTER.level}] to glancing blow`,
         },
         flow: {
             title: "🌊 Flow Of All Things",
             info: "",
-            reaction: `(melee) reduce damage [MAD ${CHARACTER.mad}] + [DR ${CHARACTER.dmgReduction}]
-                Retaliate: Attack normally and add the reduced to the dmg ,lvl5: TWICE`,
+            reaction: `(melee) reduce damage + retaliate`,
             madPoint: `🔵 Aggressive Flow: Retaliate Twice against the same attack`,
         },
         wind: {
@@ -267,6 +205,52 @@
         madPoint = STANCE_INFO[combatStance].madPoint
 
         document.getElementById("combatStateDesc").innerText = `${title}\n${info}\nReaction: ${reaction}\n\n${madPoint}`;
+
+        if (combatStance === 'mountain') {
+          // show as flex so the rows and inputs arrange correctly
+          document.getElementById('mountainInputs').style.display = 'flex';
+        } else {
+            document.getElementById('mountainInputs').style.display = 'none';
+            document.getElementById('mountainResult').innerText = '';
+        }
+
+        if (combatStance === 'flow') {
+          // show as flex so the rows and inputs arrange correctly
+          document.getElementById('flowInputs').style.display = 'flex';
+        } else {
+            document.getElementById('flowInputs').style.display = 'none';
+            document.getElementById('flowResult').innerText = '';
+        }
+    }
+
+    function calcMountain() {
+        const mountainDamage = Number(document.getElementById('mountainDamage').value) || 0;
+        const mountainElementalDamage = Number(document.getElementById('mountainElementalDamage').value) || 0;
+        const mountainDiceResult = Number(document.getElementById('mountainDiceResult').value) || 0;
+
+        reducedDamage = Math.max(0, mountainDamage - CHARACTER.dmgReduction + mountainElementalDamage - CHARACTER.dmgReductionElemental)
+        damageTaken = Math.max(0, reducedDamage - (mountainDiceResult + CHARACTER.dexMod + CHARACTER.level))
+        retaliate = Math.min((mountainDiceResult + CHARACTER.dexMod + CHARACTER.level), reducedDamage)
+
+        // example calculation (replace with your real formula)
+        const result = "Damage Taken: " + damageTaken + " Retaliate: " + retaliate;
+
+        document.getElementById('mountainResult').innerText = `Result: ${result}`;
+    }
+
+    function calcFlow() {
+        const flowDamage = Number(document.getElementById('flowDamage').value) || 0;
+        const flowElementalDamage = Number(document.getElementById('flowElementalDamage').value) || 0;
+        const flowDiceResult = Number(document.getElementById('flowDiceResult').value) || 0;
+
+        reducedDamage = Math.max(0, flowDamage - CHARACTER.dmgReduction + flowElementalDamage - CHARACTER.dmgReductionElemental)
+        damageTaken = Math.max(0, reducedDamage - (flowDiceResult))
+        retaliate = flowDiceResult + CHARACTER.dexMod + Math.min(reducedDamage, flowDiceResult)
+
+        // example calculation (replace with your real formula)
+        const result = "Damage Taken: " + damageTaken + " Retaliate: " + retaliate;
+
+        document.getElementById('flowResult').innerText = `Result: ${result}`;
     }
 
   </script>
