@@ -1,0 +1,2 @@
+checkbox for overpowering/underpowering hit
+calculate effective dr, edr and use that

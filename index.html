@@ -11,8 +11,7 @@
     <h2>Edgar Calculator</h2>
     
     <!-- Event buttons -->
-    <button class="event-btn" onclick="showForm('attack')">On Attack</button>
-    <button class="event-btn" onclick="showForm('crit')">On Crit Attack</button>
+    <button class="event-btn" onclick="showForm('attack')">On Attack/Retaliate</button>
     <button class="event-btn" onclick="showForm('defense')">On Being Attacked</button>
     <button class="event-btn" onclick="showForm('climb')">Climb/Fall</button>
 
@@ -41,8 +40,12 @@
           </div>
           <div class="mountain-row">
             <label>
-              Dice Result
+              Dice Result (MAD)
               <input type="number" id="mountainDiceResult" value="0" />
+            </label>
+            <label>
+              Dice Result Elemental (MAD)
+              <input type="number" id="mountainDiceResultElemental" value="0" />
             </label>
           </div>
           <div class="mountain-row mountain-actions">
@@ -65,8 +68,12 @@
           </div>
           <div class="flow-row">
             <label>
-              Dice Result
+              Dice Result (MAD)
               <input type="number" id="flowDiceResult" value="0" />
+            </label>
+			<label>
+              Dice Result Elemental (MAD)
+              <input type="number" id="flowDiceResultElemental" value="0" />
             </label>
           </div>
           <div class="flow-row flow-actions">
@@ -79,7 +86,7 @@
 
     <!-- Attack form -->
     <div id="attack" class="form-section">
-      <h3>On Attack</h3>
+      <h3>On Attack (Attack Action)</h3>
       <div class="result" id="attackInfo"></div>
     </div>
 
@@ -87,12 +94,6 @@
     <div id="defense" class="form-section">
         <h3>On Being Attacked</h3>
         <div class="result" id="defenceInfo"></div>
-    </div>
-
-    <!-- Crit form -->
-    <div id="crit" class="form-section">
-      <h3>On Critical Attack</h3>
-      <div class="result" id="critInfo"></div>
     </div>
 
     <!-- Climb form -->
@@ -106,7 +107,7 @@
   <script>
 
     const CHARACTER = {
-        level: 5,
+        level: 6,
 
         strMod: 0,
         dexMod: 3,
@@ -115,12 +116,12 @@
         wisMod: 2,
         chaMod: 0, // raw: -1, with ring(+1): 0
 
-        speed: 40,
+        speed: 40, // human base: 30ft; level 6 + 10ft
         profBonus: 3,
         armorClass: 18,
         dmgReduction: 6,
         dmgReductionElemental: 4,
-        mad: "3d6",
+        mad: "3d6", // +1 weapon upgrade
 
         reachRange: 10,
     };
@@ -132,21 +133,25 @@
         normal: "",
         mountain: {
             title: "⛰️ Mountain Stance",
-            info: "",
-            reaction: `Reduce Melee attack within range (${CHARACTER.reachRange}👣)
-                🪖Sentinel: if the attack is not on me, I can attack`,
+            info: `Become the mountain. unmoving and eternal. Let steel shatter against your resolve as you stand guard over your allies.
+			🔺 Cannot move while in this stance.`,
+            reaction: `Reduce damage against me and allies within weapon reach (${CHARACTER.reachRange}👣). Amount: ${CHARACTER.profBonus} per round. 
+                🪖 Sentinel: If the attack is on ally, I retaliate.
+				        🏹 Deft Reach: Can block (reduce dmg) projectiles. if dmg -> 0 can retaliate within weapon reach (${CHARACTER.reachRange}👣). Same calcualtion as melee.`,
             madPoint: `🔵 Unrelenting: Add [Lvl ${CHARACTER.level}] to glancing blow`,
         },
         flow: {
             title: "🌊 Flow Of All Things",
-            info: "",
-            reaction: `(melee) reduce damage + retaliate`,
-            madPoint: `🔵 Aggressive Flow: Retaliate Twice against the same attack`,
+            info: "Turn the force of your foe's assault back upon them, guiding their aggression to its source.",
+            reaction: `Retaliate. Upon enemy melee attack against me. Amount: ${CHARACTER.profBonus} per round.`,
+            madPoint: `🔵 Aggressive Flow: double the amount of dice
+            Declare before attack roll`,
         },
         wind: {
             title: "💨 Like the Wind",
-            info: `Movement Doubled
-                Add Wisdom to any Dex saving throw`,
+            info: `Become the wind; swift, untouchable, and ever-moving. Your feet barely kiss the earth as you dance beyond danger.
+			➕ Movement Doubled.
+            ➕ Add Wisdom to any Dex saving throw.`,
             madPoint: `🔵 Breeze: Disingage + Dash as bonus action, jump doubled`
         }
     }
@@ -162,29 +167,30 @@
 
         // on attack info
         attackInfo = `Attack Roll: [d20🎲] + [Dex ${CHARACTER.dexMod}] + [Prof ${CHARACTER.profBonus}]
+            🟣 Attack Action:
             Damage: [MAD ${CHARACTER.mad}] + [Dex ${CHARACTER.dexMod}]
+            🟣 Retaliation:
+            Per stance.
         
             🟣 Piercer: Once per turn, re-roll one damage die
 
             🟣 lvl5: Attack twice on regular attacks (not retaliatory)
             
             🟣 BDazzle(lvl5): Once per round, when you hit a creature with a Rope dart or an Unarmed Strike,
-             \tyou can spend 1 Martial Discipline Point to attempt to stun the enemy. The target must succeed on a
-             \tConstitution saving throw or have the Stunned condition until the start of your next turn`;
+             you can spend 1 Martial Discipline Point to attempt to stun the enemy. The target must succeed on a
+             Constitution saving throw or have the Stunned condition until the start of your next turn
+             
+            🟣 On Critical: (Piercer) +1 Damage Die, +Max of all thrown dice`;
+
+             
 
         // on being attacked info
-        defenceInfo = `Over powered if above armor+10: [${CHARACTER.armorClass + 10}]
-        
-            Reduce [DR ${CHARACTER.dmgReduction}] from damage
+        defenceInfo = `Over powered if above armor+10: [${CHARACTER.armorClass + 10}]: half (both) damage reduction.
+            Under Powered if  below armor-10: [${CHARACTER.armorClass - 10}]: double (both) damage reduction.
+            Damage Reduction: [DR ${CHARACTER.dmgReduction}]
+            Elemental Damage Reduction: [EDR ${CHARACTER.dmgReductionElemental}]
             
-            🟣 Glancing blow: once per turn, throw constitution save against attack roll, on success double DR`;
-
-        // on crit attack info
-        critInfo = `Double Damage
-        
-            🟣 Piercer: Roll another damage die
-            
-            🟣 Pendant: Add d6 Fire 🔥 Damage per dice`;
+            🟣 Glancing blow: once per round, throw constitution save against attack roll, on success double DR`;
 
         // on crit attack info
         climbInfo = `lvl4: While wielding a Rope dart, you gain climbing speed equal to your normal movement speed [${CHARACTER.speed}].
@@ -192,7 +198,6 @@
 
         document.getElementById("attackInfo").innerText = attackInfo;
         document.getElementById("defenceInfo").innerText = defenceInfo;
-        document.getElementById("critInfo").innerText = critInfo;
         document.getElementById("climbInfo").innerText = climbInfo;
     }
 
@@ -206,7 +211,7 @@
         reaction = STANCE_INFO[combatStance].reaction
         madPoint = STANCE_INFO[combatStance].madPoint
 
-        document.getElementById("combatStateDesc").innerText = `${title}\n${info}\nReaction: ${reaction}\n\n${madPoint}`;
+        document.getElementById("combatStateDesc").innerText = `${title}\n${info}\n🪨 Effect: ${reaction}\n\n${madPoint}`;
 
         if (combatStance === 'mountain') {
           // show as flex so the rows and inputs arrange correctly
@@ -229,28 +234,49 @@
         const mountainDamage = Number(document.getElementById('mountainDamage').value) || 0;
         const mountainElementalDamage = Number(document.getElementById('mountainElementalDamage').value) || 0;
         const mountainDiceResult = Number(document.getElementById('mountainDiceResult').value) || 0;
+        const mountainDiceResultElemental = Number(document.getElementById('mountainDiceResultElemental').value) || 0;
 
-        reducedDamage = Math.max(0, mountainDamage - CHARACTER.dmgReduction + mountainElementalDamage - CHARACTER.dmgReductionElemental)
-        damageTaken = Math.max(0, reducedDamage - (mountainDiceResult + CHARACTER.dexMod + CHARACTER.level))
-        retaliate = Math.min((mountainDiceResult + CHARACTER.dexMod + CHARACTER.level), reducedDamage)
+        mountainReduction = mountainDiceResult + mountainDiceResultElemental
+
+        reducedDamage = Math.max(0, mountainDamage - CHARACTER.dmgReduction) +
+                        Math.max(0, mountainElementalDamage - CHARACTER.dmgReductionElemental)
+
+        damageReductionForAlly = Math.min(mountainDamage + mountainElementalDamage, mountainReduction + CHARACTER.dexMod + CHARACTER.level)
+
+        damageTaken = Math.max(0, reducedDamage - (mountainReduction + CHARACTER.dexMod + CHARACTER.level))
+
+        retaliate = Math.min((mountainReduction + CHARACTER.dexMod + CHARACTER.level), reducedDamage)
 
         // example calculation (replace with your real formula)
-        const result = "Damage Taken: " + damageTaken + " Retaliate: " + retaliate;
+        const result = "🔺 I was attacked: Damage Taken (for me): " + damageTaken +
+        "\n🔺 Ally was attacked: Ally calculate damage taken normally. Further reduce by: " + damageReductionForAlly +
+        "\n🔺 Retaliate (on attack on Ally): min(" + damageReductionForAlly + ", damage prevented to ally*)" +
+        "\n*The damage the ally should have taken"
+        "\n🔺 ";
 
-        document.getElementById('mountainResult').innerText = `Result: ${result}`;
+        document.getElementById('mountainResult').innerText = result;
     }
 
     function calcFlow() {
         const flowDamage = Number(document.getElementById('flowDamage').value) || 0;
         const flowElementalDamage = Number(document.getElementById('flowElementalDamage').value) || 0;
         const flowDiceResult = Number(document.getElementById('flowDiceResult').value) || 0;
+        const flowDiceResultElemental = Number(document.getElementById('flowDiceResultElemental').value) || 0;
 
-        reducedDamage = Math.max(0, flowDamage - CHARACTER.dmgReduction + flowElementalDamage - CHARACTER.dmgReductionElemental)
-        damageTaken = Math.max(0, reducedDamage - (flowDiceResult))
-        retaliate = flowDiceResult + CHARACTER.dexMod + Math.min(reducedDamage, flowDiceResult)
-
-        // example calculation (replace with your real formula)
-        const result = "Damage Taken: " + damageTaken + " Retaliate: " + retaliate;
+        reducedDamage = Math.max(0, flowDamage - CHARACTER.dmgReduction) + 
+						Math.max(0, flowElementalDamage - CHARACTER.dmgReductionElemental)
+		
+        damageTaken = Math.max(0, reducedDamage - flowDiceResult)
+		
+		    retaliatePool = Math.min(reducedDamage, flowDiceResult)
+		
+        // piercing retaliation
+        retaliatePiercing = flowDiceResult + CHARACTER.dexMod + Math.floor(0.5 * (retaliatePool + 1))
+        
+        // elemental retaliation
+        retaliateElemental = flowDiceResultElemental + Math.floor(0.5 * retaliatePool)
+		
+        const result = "Damage Taken: " + damageTaken + " Retaliate: " + retaliatePiercing + " piercing dmg, " + retaliateElemental + " Elemental dmg";
 
         document.getElementById('flowResult').innerText = `Result: ${result}`;
     }
